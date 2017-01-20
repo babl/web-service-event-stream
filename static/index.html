@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Babl Events</title>
+  
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+
+  <script
+  src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
+  integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc="
+  crossorigin="anonymous"></script>
+
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="babl.css"/>
+
+  <!-- Latest compiled and minified JavaScript -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+  
+
+</head>
+<body>
+  <div class="container">
+    <h1>Babl Events</h1>
+    <hr>
+    <div class="row">
+      <div class="col-md-3">
+        <div class="box box-solid">
+          <div class="box-header with-border">
+            <div class="box-title">Events</div>
+          </div>
+          <div class="box-body no-padding">
+            <ul class="nav nav-pills nav-stacked labels">
+              <li>
+                <div class="text-center" style="padding: 10px;">
+                  <em class="text-muted">No labels.</em>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-9">
+        <ul class="timeline">
+          <li class="no-messages-item">
+            <i class="fa fa-info"></i>
+            <div class="timeline-item">
+              <div class="timeline-body">
+                <em class="text-muted">No messages.</em>
+              </div>
+            </div>
+          </li>
+          <li>
+            <i class="fa fa-clock-o bg-gray"></i>
+          </li>
+        </ul>
+        <div class="text-center"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+
+    // Create a new HTML5 EventSource
+    var source = new EventSource('http://sandbox.babl.sh:7001/events');
+
+    // Create a callback for when a new message is received.
+    source.onmessage = function(e) {
+        // Append the `data` attribute of the message to the DOM.
+        $(".timeline-body").append("<div class=\"event\">"+ e.data + '</div>');
+      };
+    </script>
+  </body>
+  </html>
