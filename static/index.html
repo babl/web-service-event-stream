@@ -15,7 +15,6 @@
 
   <!-- Latest compiled and minified JavaScript -->
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-
   
 
 </head>
@@ -23,15 +22,30 @@
   <div class="container">
     <h1>Babl Events</h1>
     <hr>
+    <div class="row" style="margin-bottom:20px">
+      <div class="col-md-11">
+      <div class="input-group">
+        <input id ="connect-input" type="text" class="form-control"  placeholder="Add SSE Cluster Endpoint; ex:sandbox.babl.sh:7001")>
+        <span class="input-group-btn">
+          <button id="connect-btn" class="btn btn-default" onclick="connect_to();return false;" type="button">Connect!</button>
+        </span>
+      </div><!-- /input-group -->
+      </div>
+    </div>
     <div class="row">
-      <div class="col-md-3">
+      <div id="clusters" class="col-md-12">
+        
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">
         <div class="box box-solid">
           <div class="box-header with-border">
             <div class="box-title">Events</div>
           </div>
           <div class="box-body no-padding">
-            <ul class="nav nav-pills nav-stacked labels">
-              <li>
+            <ul id="event-labels" class="nav nav-pills nav-stacked labels">
+              <li id="no-labels">
                 <div class="text-center" style="padding: 10px;">
                   <em class="text-muted">No labels.</em>
                 </div>
@@ -40,19 +54,9 @@
           </div>
         </div>
       </div>
-      <div class="col-md-9">
-        <ul class="timeline">
-          <li class="no-messages-item">
-            <i class="fa fa-info"></i>
-            <div class="timeline-item">
-              <div class="timeline-body">
-                <em class="text-muted">No messages.</em>
-              </div>
-            </div>
-          </li>
-          <li>
-            <i class="fa fa-clock-o bg-gray"></i>
-          </li>
+      <div class="col-md-8">
+        <ul id="timeline" class="timeline">
+          <em id="no-messages" class="text-muted">Waiting for messages...</em>
         </ul>
         <div class="text-center"></div>
       </div>
@@ -60,15 +64,125 @@
   </div>
 
   <script type="text/javascript">
+  
+  function toggleEvents(event,isToHide){
+    
+    var id = "#event-"+events.indexOf(event)
+    if(isToHide){
+      $(id).removeClass("selected")
+      $(id+" i ").removeClass("fa-circle").addClass("fa-circle-o")
+      $('.'+toSafeCss(event)).hide()
+    } else {
+      $(id).addClass("selected")
+      $(id+" i ").removeClass("fa-circle-o").addClass("fa-circle")
+      $('.'+toSafeCss(event)).show()
+    }
+  }
 
+  function addEvent(event){
+    
+    var html = '<li id="event-'+events.length+'" class="selected" style="padding: 10px;"><a href="Javascript:">\
+    <i class="fa text-red fa-circle"></i><em class="text-muted">'+event+'<span id="event-counter-'+events.length+'" class="badge pull-right">1</span></a></li>'
+    $("#event-labels").append(html);
+    
+    $("#event-"+events.length).on("click",function(){
+      toggleEvents(event,$(this).hasClass("selected"))
+    })
+    events.push(event)
+  }
+  function increaseEventCounter(event){
+    
+    var id = "#event-counter-"+events.indexOf(event)
+    $(id).text(parseInt($(id).text())+1)
+  }
+  function applyEvent(event){
+    (events.indexOf(event) == -1)?addEvent(event):increaseEventCounter(event)
+  }
+
+  function toSafeCss(e){
+    return e.replace(/[!\"#$%&'\(\)\*\+,\.\/:;<=>\?\@\[\\\]\^`\{\|\}~]/g, '');
+  }
+
+  function addMessage(e,url){
+    
+    var html='\
+    <li class="'+toSafeCss(e.event)+'">\
+      <i class="fa fa-info"></i>\
+      <div class="timeline-item">\
+        <span class="time"><i class="fa fa-clock-o"></i>'+new Date().toDateString()+'</span>\
+        <div class="timeline-body">\
+          <div class="payload hide-content">'+e.message+'</div>\
+          <div>\
+            <span class="label label-info">'+url+'</span>\
+            <span class="label label-babl">'+e.event+'</span>\
+          </div>\
+        </div>\
+      </div>\
+    </li>\
+    '
+    $("#timeline").append(html);
+    applyEvent(e.event)
+  }
+
+  function addLabel(url,sse){
+    var id="cluster-"+Date.now();
+    var html = 
+    '<div class="alert alert-dismissible show col-md-3" style="margin-right: 10px;" role="alert">\
+      <button id="'+id+'" type="button" class="close" data-dismiss="alert" aria-label="Close">\
+        <span aria-hidden="true">&times;</span>\
+      </button>\
+      <strong>'+url+'\
+    </div>'
+    $('#clusters').append(html)
+    $('#'+id).on("click",function(){
+      sse.close();
+    })
+  }
+
+  function connect_to(url){
+    url = (!url)?$("#connect-input").val():url;
+    console.log('connecting to...',url)
     // Create a new HTML5 EventSource
-    var source = new EventSource('http://sandbox.babl.sh:7001/events');
-
+    var source = new EventSource('http://'+url+'/events');
+    
     // Create a callback for when a new message is received.
     source.onmessage = function(e) {
         // Append the `data` attribute of the message to the DOM.
-        $(".timeline-body").append("<div class=\"event\">"+ e.data + '</div>');
-      };
+        console.log("msg",e.data)
+        data = JSON.parse(e.data)
+        addMessage(data,url)
+    };
+    source.onerror = function(e) {
+        addMessage({"event":"sse-error","message":"ERROR with connection to: "+url})
+    };
+    
+    source.onopen = function(e){
+      $("#no-messages").addClass("hidden")
+      $("#no-labels").addClass("hidden")
+    }
+
+    addLabel(url,source)
+  }
+
+  var clusters  = [
+    "sandbox.babl.sh:7001",
+    "192.168.99.100:7001"
+  ]
+
+  var events = []
+
+  //current clusters
+  for (var i = clusters.length - 1; i >= 0; i--) {
+    connect_to(clusters[i])
+  }
+
+  //add new clusters
+  $("#connect-input").keyup(function(event){
+      if(event.keyCode == 13){
+        $("#connect-btn").click();
+      }
+  });
+
     </script>
   </body>
   </html>
